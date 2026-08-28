@@ -6,13 +6,13 @@ void InformationDesk::update(const Notice& notice)const{
           isOperational = true;
           break;
         case NoticeType::EVACUATE:
-          isOperational; = true;
+          isOperational = true;
           break;
         case NoticeType::CLOSE:
           isOperational = false;
           break;
         case NoticeType::OPEN:
-            isOperational; = true;
+            isOperational = true;
           break;
         case NoticeType::RESUME:
           isOperational = true;
