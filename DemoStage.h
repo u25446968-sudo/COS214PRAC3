@@ -5,6 +5,8 @@
 #include "EventUnit.h"
 
 class DemoStage : public EventUnit, public Observer{
+    private:
+       bool isPaused;
     public: 
        void update(const Notice& notice)override;
 };
