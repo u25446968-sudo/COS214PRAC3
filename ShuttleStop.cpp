@@ -6,13 +6,13 @@ void ShuttleStop::update(const Notice& notice)const{
         transportStatus = TransportStatus::DELAYED;
         break;
       case EVACUATE:
-        transportStatus = TransportSTatus::HALTED;
+        transportStatus = TransportStatus::HALTED;
         break;
       case TRANSPORT_DELAY:
-        transportStatus = TransportSTatus::DELAYED;
+        transportStatus = TransportStatus::DELAYED;
         break;
       case RESUME:
-        transportStatus = TransportSTatus::RUNNING;
+        transportStatus = TransportStatus::RUNNING;
         break;
       default:
         break;
