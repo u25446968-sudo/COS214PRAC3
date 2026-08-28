@@ -1,6 +1,6 @@
 #include "InformationDesk.h"
 
-void InformationDesk::update(const Notice& notice)const{
+void InformationDesk::update(const Notice& notice){
     switch(notice.getType()){
         case NoticeType::WEATHER_ALERT:
           isOperational = true;

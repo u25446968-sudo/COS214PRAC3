@@ -1,6 +1,6 @@
 #include "ShuttleStop.h"
 
-void ShuttleStop::update(const Notice& notice)const{
+void ShuttleStop::update(const Notice& notice){
     switch(notice.getType()){
       case WEATHER_ALERT:
         transportStatus = TransportStatus::DELAYED;

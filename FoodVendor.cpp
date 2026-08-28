@@ -1,6 +1,6 @@
 #include "FoodVendor.h"
 
-void FoodVendor::update(const Notice& notice)const{
+void FoodVendor::update(const Notice& notice){
      switch(notice.getType()){
         case NoticeType::WEATHER_ALERT:
           isOpen = false;
