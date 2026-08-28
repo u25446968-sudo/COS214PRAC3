@@ -6,7 +6,7 @@
 
 enum class TransportStatus {RUNNING, HALTED, DELAYED};
 
-class SecurityTeam : public EventUnit, public Observer{
+class ShuttleStop : public EventUnit, public Observer{
     private:
        TransportStatus transportStatus;
     public: 
