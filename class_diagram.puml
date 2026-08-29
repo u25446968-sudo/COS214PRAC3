@@ -1,0 +1,84 @@
+@startuml class_diagram
+
+
+abstract class EventComponent {
+  # name : string
+  + EventComponent(name : string)
+  + {abstract} open() : void
+  + {abstract} close() : void
+  + {abstract} reportStatus() : void
+  + {abstract} getCapacity() : int
+  + getName() : string
+  + {abstract} ~EventComponent()
+}
+
+abstract class EventUnit {
+  # capacity : int
+  # isOpen : bool
+  + EventUnit(name : string, capacity : int)
+  + open() : void
+  + close() : void
+  + getCapacity() : int
+  + update(notice : Notice) : void
+  + ~EventUnit()
+}
+
+class EventGroup {
+  - children : EventComponent*[0..*]
+  - observers : Observer*[0..*]
+  - currentNotice : Notice
+  + EventGroup(name : string)
+  + add(component : EventComponent*) : void
+  + remove(component : EventComponent*) : void
+  + open() : void
+  + close() : void
+  + reportStatus() : void
+  + getCapacity() : int
+  + attach(observer : Observer*) : void
+  + detach(observer : Observer*) : void
+  + notify() : void
+  + update(notice : Notice) : void
+  + issueNotice(notice : Notice) : void
+  + ~EventGroup()
+}
+
+class DemoStage {
+  - queueLength : int
+  - isPaused : bool
+  - scheduleVersion : int
+  + DemoStage(name : string, capacity : int)
+  + joinQueue() : void
+  + close() : void
+  + reportStatus() : void
+}
+
+class InnovationBooth {
+  - exhibitorName : string
+  + InnovationBooth(name : string, capacity : int, exhibitorName : string)
+  + reportStatus() : void
+}
+
+class InformationDesk {
+  + InformationDesk(name : string)
+  + getCapacity() : int
+  + reportStatus() : void
+}
+
+class ShuttleStop {
+  - transportStatus : TransportStatus
+  + ShuttleStop(name : string, capacity : int)
+  + reportStatus() : void
+}
+
+class SecurityTeam {
+  - alertLevel : AlertLevel
+  + SecurityTeam(name : string, capacity : int)
+  + reportStatus() : void
+}
+
+class FoodVendor {
+  - needsInspection : bool
+  + FoodVendor(name : string, capacity : int, needsInspection : bool)
+  + reportStatus() : void
+}
+
