@@ -2,8 +2,8 @@
 #define EVENT_UNIT_H
 
 #include "EventComponent.h"
-#include "Observer"
-#include Notice
+#include "Observer.h"
+#include "Notice.h"
 
 class EventUnit : public EventComponent, public Observer {
 protected:

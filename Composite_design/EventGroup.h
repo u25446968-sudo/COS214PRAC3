@@ -1,6 +1,8 @@
 #ifndef EVENT_GROUP_H
 #define EVENT_GROUP_H
 
+#include "EventComponent.h";
+
 class EventGroup : public EventComponent, public Subject, public Observer {
 private:
     std::vector<EventComponent*> children;
