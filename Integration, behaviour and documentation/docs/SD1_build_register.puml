@@ -1,0 +1,47 @@
+@startuml SD1_BuildRegister
+actor client
+participant "expo : EventGroup" as expo
+participant "techHall : EventGroup" as tech
+participant "futureZone : EventGroup" as future
+participant "stage : DemoStage" as stage
+participant "robotics : InnovationBooth" as robotics
+participant "control : EventControl" as control
+
+== Composite construction ==
+client -> expo ++ : <<create>> EventGroup(name)
+client -> tech ++ : <<create>> EventGroup(name)
+client -> future ++ : <<create>> EventGroup(name)
+client -> stage ++ : <<create>> DemoStage(name, capacity)
+client -> robotics ++ : <<create>> InnovationBooth(name, capacity)
+
+client -> expo : add(child: EventComponent*)
+expo --> client : accepted: bool
+client -> tech : add(child: EventComponent*)
+tech --> client : accepted: bool
+client -> future : add(child: EventComponent*)
+future --> client : accepted: bool
+client -> future : add(child: EventComponent*)
+future --> client : accepted: bool
+client -> future : add(child: EventComponent*)
+future --> client : accepted: bool
+
+== Observer registration ==
+client -> control : attach(observer: Observer*)
+control --> client : void
+client -> expo : attach(observer: Observer*)
+expo --> client : void
+client -> tech : attach(observer: Observer*)
+tech --> client : void
+client -> future : attach(observer: Observer*)
+future --> client : void
+
+opt duplicate registration requested
+  client -> control : attach(observer: Observer*)
+  note right: Duplicate pointer is ignored.
+end
+
+note over expo,stage
+Composition arrows represent ownership.
+Observer registrations are separate non-owning relationships.
+end note
+@enduml

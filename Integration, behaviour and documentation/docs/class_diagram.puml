@@ -1,0 +1,133 @@
+@startuml EventFlowClass
+skinparam classAttributeIconSize 0
+hide empty members
+
+abstract class EventComponent {
+  +open() : void
+  +close() : void
+  +reportStatus() : void
+  +getCapacity() : int
+  +getName() : const std::string&
+  {abstract} ~EventComponent()
+}
+
+abstract class Observer {
+  +update(notice: const Notice&) : void
+  +rememberSubject(subject: Subject*) : void
+  +forgetSubject(subject: Subject*) : void
+  +subjectDestroyed(subject: Subject*) : void
+  ~Observer()
+}
+
+abstract class Subject {
+  #observers_ : vector<Observer*>
+  +attach(observer: Observer*) : void
+  +detach(observer: Observer*) : void
+  +notify() : void
+  ~Subject()
+}
+
+class EventControl {
+  -currentNotice_ : Notice*
+  +issueNotice(notice: const Notice&) : void
+  +evaluateCapacity(group: EventGroup*, threshold: int) : bool
+  +notify() : void
+  +currentNotice() : const Notice*
+  ~EventControl()
+}
+
+class EventGroup {
+  -name_ : string
+  -children_ : vector<EventComponent*>
+  -open_ : bool
+  -currentNotice_ : Notice*
+  +add(child: EventComponent*) : bool
+  +remove(childName: string) : EventComponent*
+  +findChild(childName: string) : EventComponent*
+  +childCount() : size_t
+  +open() : void
+  +close() : void
+  +reportStatus() : void
+  +getCapacity() : int
+  +getName() : const string&
+  +update(notice: const Notice&) : void
+  +notify() : void
+  +capacityAtLeast(threshold: int) : bool
+  +currentNotice() : const Notice*
+  ~EventGroup()
+}
+
+abstract class EventUnit {
+  #name_ : string
+  #capacity_ : int
+  #active_ : bool
+  #state_ : string
+  +open() : void
+  +close() : void
+  +reportStatus() : void
+  +getCapacity() : int
+  +getName() : const string&
+  {abstract} update(notice: const Notice&) : void
+  ~EventUnit()
+}
+
+class DemoStage
+class InnovationBooth
+class InformationDesk
+class ShuttleStop
+class SecurityTeam
+class FoodVendor
+
+class Notice <<struct>> {
+  +type : NoticeType
+  +message : string
+  +value : int
+}
+
+enum NoticeType {
+  OPEN
+  CLOSE
+  SCHEDULE_CHANGE
+  CAPACITY_ALERT
+  WEATHER_ALERT
+  TRANSPORT_DELAY
+  EVACUATE
+  PAUSE
+  RESUME
+  STOCK_ALERT
+}
+
+EventComponent <|-- EventGroup
+EventComponent <|-- EventUnit
+Subject <|-- EventControl
+Subject <|-- EventGroup
+Observer <|.. EventGroup
+Observer <|.. EventUnit
+EventUnit <|-- DemoStage
+EventUnit <|-- InnovationBooth
+EventUnit <|-- InformationDesk
+EventUnit <|-- ShuttleStop
+EventUnit <|-- SecurityTeam
+EventUnit <|-- FoodVendor
+
+EventGroup "1" *-- "0..*" EventComponent : owns children
+Subject "1" --> "0..*" Observer : registers / non-owning
+Observer "1" --> "0..*" Subject : remembers / non-owning
+EventControl --> EventGroup : capacity query
+Subject --> Notice : pushes current notice
+EventGroup --> Notice : stores current notice
+Notice --> NoticeType
+
+note right of EventGroup
+Composite + Observer + Subject
+
+Composite ownership and Observer
+registration are deliberately separate.
+end note
+
+note bottom of Subject
+attach duplicate: ignored
+missing detach: no-op
+notify uses an observer snapshot
+end note
+@enduml

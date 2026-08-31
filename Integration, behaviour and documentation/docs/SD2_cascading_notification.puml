@@ -1,0 +1,70 @@
+@startuml SD2_Cascade
+actor controlClient as client
+participant "control : EventControl" as control
+participant "expo : EventGroup" as expo
+participant "techHall : EventGroup" as tech
+participant "futureZone : EventGroup" as future
+participant "digitalZone : EventGroup" as digital
+participant "stage : DemoStage" as stage
+participant "robotics : InnovationBooth" as robotics
+participant "info : InformationDesk" as info
+
+client -> control : issueNotice(notice: const Notice&)
+activate control
+control -> control : notify()
+activate control
+loop for each registered Observer
+  control -> expo : update(notice: const Notice&)
+  activate expo
+  expo -> expo : notify()
+  activate expo
+  loop for each registered Observer below expo
+    expo -> tech : update(notice: const Notice&)
+    activate tech
+    tech -> tech : notify()
+    activate tech
+    loop for each registered Observer below Tech Hall
+      alt [Future Mobility Zone branch]
+        tech -> future : update(notice: const Notice&)
+        activate future
+        future -> future : notify()
+        activate future
+        loop for each registered Observer below Future Mobility Zone
+          future -> stage : update(notice: const Notice&)
+          activate stage
+          stage --> future : void
+          deactivate stage
+          future -> robotics : update(notice: const Notice&)
+          activate robotics
+          robotics --> future : void
+          deactivate robotics
+        end
+        future --> tech : void
+        deactivate future
+      else [Digital Futures Zone branch]
+        tech -> digital : update(notice: const Notice&)
+        activate digital
+        digital -> digital : notify()
+        activate digital
+        digital -> info : update(notice: const Notice&)
+        activate info
+        info --> digital : void
+        deactivate info
+        digital --> tech : void
+        deactivate digital
+      end
+    end
+    tech --> expo : void
+    deactivate tech
+  end
+  expo --> control : void
+  deactivate expo
+end
+control --> client : void
+deactivate control
+
+note over control,info
+Push model: the Notice object is passed directly into update().
+The observer loop is modelled with a UML loop fragment rather than repeated arrows.
+end note
+@enduml

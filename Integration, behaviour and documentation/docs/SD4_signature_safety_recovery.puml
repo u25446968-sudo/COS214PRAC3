@@ -1,0 +1,79 @@
+@startuml SD4_Signature
+actor operator
+participant "control : EventControl" as control
+participant "expo : EventGroup" as expo
+participant "communityHall : EventGroup" as community
+participant "techHall : EventGroup" as tech
+participant "cafe : FoodVendor" as cafe
+participant "security : SecurityTeam" as security
+participant "shuttle : ShuttleStop" as shuttle
+participant "info : InformationDesk" as info
+
+== Safety event ==
+operator -> control : issueNotice(notice: const Notice&)
+activate control
+control -> expo : update(notice: const Notice&)
+activate expo
+expo -> community : update(notice: const Notice&)
+activate community
+loop current community observers
+  community -> shuttle : update(notice: const Notice&)
+  shuttle --> community : void
+  community -> cafe : update(notice: const Notice&)
+  cafe --> community : void
+end
+note right of community
+security is currently detached,
+so it correctly receives no evacuation notice
+end note
+community --> expo : void
+deactivate community
+expo --> control : void
+deactivate expo
+control --> operator : void
+deactivate control
+
+== Runtime observer/ownership change ==
+operator -> community : detach(observer: Observer*)
+community --> operator : void
+operator -> community : remove(childName: string)
+community --> operator : removed: EventComponent*
+operator -> tech : add(child: EventComponent*)
+tech --> operator : accepted: bool
+operator -> tech : attach(observer: Observer*)
+tech --> operator : void
+
+== Recovery with changed registration ==
+operator -> community : attach(observer: Observer*)
+community --> operator : void
+operator -> control : issueNotice(notice: const Notice&)
+activate control
+control -> expo : update(notice: const Notice&)
+activate expo
+expo -> tech : update(notice: const Notice&)
+activate tech
+loop current Tech Hall observers
+  tech -> cafe : update(notice: const Notice&)
+  cafe --> tech : void
+end
+tech --> expo : void
+deactivate tech
+expo -> community : update(notice: const Notice&)
+activate community
+opt security is registered again
+  community -> security : update(notice: const Notice&)
+  security --> community : void
+end
+community --> expo : void
+deactivate community
+expo --> control : void
+deactivate expo
+control --> operator : void
+deactivate control
+
+note over community,tech
+The vendor is transferred without deletion: remove() transfers ownership,
+then add() transfers ownership to the new Composite. Observer registration
+is detached from the old Subject and attached to the new Subject separately.
+end note
+@enduml

@@ -1,0 +1,69 @@
+@startuml SD3_Conditional
+actor operator
+participant "control : EventControl" as control
+participant "techHall : EventGroup" as tech
+participant "futureZone : EventGroup" as future
+participant "stage : DemoStage" as stage
+participant "robotics : InnovationBooth" as robotics
+participant "security : SecurityTeam" as security
+
+operator -> control : evaluateCapacity(group: EventGroup*, threshold: int)
+activate control
+control -> tech : getCapacity()
+tech --> control : capacity: int
+control -> tech : capacityAtLeast(threshold: int)
+tech --> control : reached: bool
+
+alt [capacity >= threshold]
+  control -> control : issueNotice(notice: const Notice&)
+  control -> expo : update(notice: const Notice&)
+  activate expo
+  expo -> tech : update(notice: const Notice&)
+  activate tech
+  tech -> tech : notify()
+  activate tech
+  tech -> future : update(notice: const Notice&)
+  activate future
+  future -> future : notify()
+  activate future
+  future -> stage : update(notice: const Notice&)
+  stage --> future : void
+  future --> tech : void
+  deactivate future
+  tech -> robotics : update(notice: const Notice&)
+  robotics --> tech : void
+  tech --> expo : void
+  deactivate tech
+  expo --> control : void
+  deactivate expo
+else [capacity < threshold]
+  control -> control : no warning issued
+end
+
+opt [capacity >= 90% of threshold]
+  control -> control : issueNotice(notice: const Notice&)
+  control -> expo : update(notice: const Notice&)
+  activate expo
+  expo -> tech : update(notice: const Notice&)
+  activate tech
+  tech -> future : update(notice: const Notice&)
+  activate future
+  future -> stage : update(notice: const Notice&)
+  stage --> future : void
+  future --> tech : void
+  deactivate future
+  tech --> expo : void
+  deactivate tech
+  expo --> control : void
+  deactivate expo
+end
+
+
+control --> operator : result: bool
+deactivate control
+
+note over control,security
+The condition is based on the Composite's aggregate query.
+Concrete units react polymorphically; the controller does not inspect types.
+end note
+@enduml

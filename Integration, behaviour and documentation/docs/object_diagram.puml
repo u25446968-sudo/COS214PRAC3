@@ -1,0 +1,43 @@
+@startuml EventFlowObjects
+object "expo : EventGroup" as expo
+object "techHall : EventGroup" as tech
+object "futureZone : EventGroup" as future
+object "digitalZone : EventGroup" as digital
+object "communityHall : EventGroup" as community
+object "keynoteStage : DemoStage" as stage
+object "robotics : InnovationBooth" as robotics
+object "aiLab : InnovationBooth" as ai
+object "infoDesk : InformationDesk" as info
+object "shuttle : ShuttleStop" as shuttle
+object "security : SecurityTeam" as security
+object "cafe : FoodVendor" as cafe
+object "control : EventControl" as control
+
+expo *-- tech
+expo *-- community
+tech *-- future
+tech *-- digital
+future *-- stage
+future *-- robotics
+digital *-- ai
+digital *-- info
+tech *-- cafe
+community *-- shuttle
+community *-- security
+
+control --> expo : observer registration
+expo --> tech : observer registration
+expo --> community : observer registration
+tech --> future : observer registration
+tech --> digital : observer registration
+future --> stage : observer registration
+future --> robotics : observer registration
+digital --> ai : observer registration
+digital --> info : observer registration
+community --> shuttle : observer registration
+community --> security : observer registration
+community --> cafe : observer registration (before transfer)
+
+note "Solid composition links = ownership.\nDashed/labelled registration links = non-owning observation." as N
+N .. expo
+@enduml
