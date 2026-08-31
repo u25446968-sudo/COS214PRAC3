@@ -1,16 +1,41 @@
-# COS 214 Practical 3 — EventFlow Design Report
+# COS 214 Practical 3 --- EventFlow Design Report
 
-> **Submission template:** replace the team placeholders and GitHub placeholder before submission.
+## Pretoria Innovation Expo 2026
 
-## 1. Event name and concept
+### Team Members
+
+  -----------------------------------------------------------------------
+  Member                  Name                    Primary Responsibility
+  ----------------------- ----------------------- -----------------------
+  Member 1                **Kemi**                Composite / Event
+                                                  Structure
+
+  Member 2                **Boitumelo Ashley      Observer / Notification
+                          Monareng**              System
+
+  Member 3                **Hluyo Terrence        Integration, UML and
+                          Vakai**                 Documentation
+  -----------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## 1. Event Name and Concept
 
 ### Pretoria Innovation Expo 2026
 
-Pretoria Innovation Expo is a live technology exhibition containing presentation areas, interactive demonstrations, visitor services, transport and security operations. The event is intentionally modelled as a hierarchy because an organiser can reason about a whole expo, a hall, a zone, or one operational unit using the same `EventComponent` interface.
+Pretoria Innovation Expo 2026 is a fictional live technology and
+innovation exhibition designed as the domain for the EventFlow
+coordination engine. The expo brings together technology demonstrations,
+innovation booths, visitor services, transport services and security
+operations.
 
-The sample tree is:
+The event is modelled as a hierarchy because an organiser should be able
+to reason about the whole expo, a hall, a zone or an individual
+operational unit through the same `EventComponent` interface.
 
-```text
+The sample event tree is:
+
+``` text
 Pretoria Innovation Expo (root Composite)
 ├── Tech Hall (Composite)
 │   ├── Future Mobility Zone (Composite)
@@ -25,240 +50,653 @@ Pretoria Innovation Expo (root Composite)
     └── Tech Hall Security (Leaf)
 ```
 
-The design contains six concrete leaf types: `DemoStage`, `InnovationBooth`, `InformationDesk`, `ShuttleStop`, `SecurityTeam`, and `FoodVendor`.
+The system also responds to changes while the expo is running. A central
+`EventControl` component can issue notices such as weather alerts,
+capacity warnings, schedule changes, transport delays, evacuation
+instructions, pauses and resumptions.
 
-The grouping types are represented by `EventGroup` instances such as the root expo, halls and zones. There are at least three nesting levels below the client/root boundary: root → hall → zone → leaf.
+Different operational units react differently to the same notice. For
+example:
 
-## 1.2 GoF participant mapping
+-   A `DemoStage` may pause during a weather alert.
+-   A `SecurityTeam` may increase monitoring during a capacity alert.
+-   A `ShuttleStop` may update its transport status during a delay.
+-   An `InformationDesk` may remain operational to provide visitor
+    guidance during an emergency.
 
-### Composite
+The central architectural idea is:
 
-| GoF role | EventFlow class | Responsibility |
-|---|---|---|
-| Component | `EventComponent` | Uniform `open`, `close`, `reportStatus`, `getCapacity`, `getName` operations. |
-| Composite | `EventGroup` | Owns zero or more `EventComponent` children and recursively implements common operations. |
-| Leaf | `EventUnit` and six concrete leaf classes | Performs concrete operational behaviour. |
-| Client | `main.cpp` / event operator | Builds and uses the tree through `EventComponent`. |
+> **Composite answers what is contained inside an event area, while
+> Observer answers who needs to hear about a change.**
 
-### Observer
+------------------------------------------------------------------------
 
-| GoF role | EventFlow class | Responsibility |
-|---|---|---|
-| Subject | `Subject` | Registration list and notification protocol. |
-| Concrete Subject | `EventControl` and `EventGroup` | Publishes notices. `EventControl` originates event-wide notices; groups cascade them. |
-| Observer | `Observer` | Notification interface and safe registration bookkeeping. |
-| Concrete Observers | `EventGroup` and six concrete event units | React polymorphically to notices. |
+## 2. GoF Participant Mapping
 
-`EventGroup` participates in three collaborations: Composite as a structural node, Observer as a receiver from its parent, and Subject as a publisher to interested descendants. These are different reasons for collaboration and are not the same pattern.
+### 2.1 Composite Pattern
 
-## 1.3 Architecture summary
+  -----------------------------------------------------------------------
+  GoF Role                EventFlow Class         Responsibility
+  ----------------------- ----------------------- -----------------------
+  Component               `EventComponent`        Provides common
+                                                  operations such as
+                                                  `open()`, `close()`,
+                                                  `reportStatus()` and
+                                                  `getCapacity()`.
 
-`EventComponent` is the polymorphic Composite boundary. `EventGroup` contains owning `EventComponent*` children. `EventControl` owns neither the Composite tree nor observers. Instead, observer pointers are non-owning registrations.
+  Composite               `EventGroup`            Owns child
+                                                  `EventComponent`
+                                                  objects and recursively
+                                                  performs common
+                                                  operations.
 
-The observer chain is configured separately from the ownership tree. A representative chain is:
+  Leaf                    `EventUnit` and         Represents individual
+                          concrete event units    operational units with
+                                                  specialised behaviour.
 
-```text
+  Client                  `main.cpp`              Builds and uses the
+                                                  event structure through
+                                                  the common interface.
+  -----------------------------------------------------------------------
+
+### 2.2 Observer Pattern
+
+  -----------------------------------------------------------------------
+  GoF Role                EventFlow Class         Responsibility
+  ----------------------- ----------------------- -----------------------
+  Subject                 `Subject`               Defines observer
+                                                  registration and
+                                                  notification behaviour.
+
+  Concrete Subject        `EventControl` and      Publishes notices.
+                          `EventGroup`            
+
+  Observer                `Observer`              Defines the
+                                                  notification interface.
+
+  Concrete Observers      `EventGroup` and        React polymorphically
+                          concrete event units    to notices.
+  -----------------------------------------------------------------------
+
+`EventGroup` participates in more than one collaboration. Structurally
+it is a Composite, but it can also receive notifications as an Observer
+and cascade notifications as a Subject. These are separate
+responsibilities and do not represent misuse of either pattern.
+
+------------------------------------------------------------------------
+
+## 3. Architecture and Design Rationale
+
+### 3.1 Genuine Part-Whole Structure
+
+The Expo is a genuine Composite tree. A hall contains zones and
+operational units, while a zone can contain further groups and leaves.
+
+All event components support common operations:
+
+``` cpp
+open();
+close();
+reportStatus();
+getCapacity();
+```
+
+This means a client can interact with either one leaf or an entire
+Composite through the same `EventComponent` interface.
+
+### 3.2 Why Observer Is Required
+
+`EventControl` should not contain hard-coded calls to every concrete
+event unit. Doing so would make the controller dependent on the complete
+event topology.
+
+Observer allows interested components to register at runtime. It also
+allows an `EventGroup` to receive a notice from above and publish it to
+observers below.
+
+### 3.3 Ownership Policy
+
+Each `EventGroup` owns its direct children.
+
+-   `add()` transfers ownership to the group.
+-   `remove()` removes the child without deleting it and transfers
+    ownership back to the caller.
+-   The root Composite recursively destroys its owned subtree.
+
+This makes runtime movement possible without double deletion.
+
+### 3.4 Observer Ownership
+
+Subjects do **not** own their observers.
+
+Observer registrations are non-owning pointers because the Composite
+tree already defines the ownership of event components. Observation is a
+separate relationship.
+
+The registration policy is:
+
+-   `attach(nullptr)` is ignored.
+-   Duplicate `attach()` calls do not create duplicate registrations.
+-   `detach(nullptr)` is ignored.
+-   Detaching an observer that is not registered is a safe no-op.
+-   Notification uses a snapshot of the observer list so registration
+    changes during notification do not invalidate the iteration.
+
+### 3.5 Push Observer Choice
+
+EventFlow uses the **Push Observer approach**.
+
+The notification operation is conceptually:
+
+``` cpp
+update(const Notice& notice);
+```
+
+The notice contains relevant information such as:
+
+-   notice type;
+-   message;
+-   associated value, where applicable.
+
+Push was selected because event information such as capacity values and
+safety messages is already available when the notice is published. This
+makes the notification interaction explicit and avoids requiring every
+observer to query the subject again.
+
+------------------------------------------------------------------------
+
+# 4. Team Responsibilities
+
+## 4.1 Member 1 --- Kemi
+
+### Primary Role
+
+**Composite / Event Structure Lead**
+
+### Objective
+
+Kemi is responsible for implementing the structural side of EventFlow.
+The objective is to represent the Pretoria Innovation Expo as a genuine
+part-whole tree where individual event units and complete event groups
+can be treated uniformly.
+
+### Primary Files
+
+``` text
+EventComponent.h
+EventComponent.cpp
+EventUnit.h
+EventUnit.cpp
+EventGroup.h
+EventGroup.cpp
+```
+
+### Concrete Event Unit Files
+
+``` text
+DemoStage.h / DemoStage.cpp
+InnovationBooth.h / InnovationBooth.cpp
+InformationDesk.h / InformationDesk.cpp
+ShuttleStop.h / ShuttleStop.cpp
+SecurityTeam.h / SecurityTeam.cpp
+FoodVendor.h / FoodVendor.cpp
+```
+
+### Diagram Responsibilities
+
+``` text
+docs/object_diagram.puml
+Composite-related section of docs/class_diagram.puml
+```
+
+### Tasks
+
+1.  Implement `EventComponent` as the common Component abstraction.
+2.  Ensure every polymorphic base class has a virtual destructor.
+3.  Implement the common event operations:
+    -   `open()`
+    -   `close()`
+    -   `reportStatus()`
+    -   `getCapacity()`
+4.  Implement `EventUnit` as the common base for individual operational
+    units.
+5.  Implement the concrete event unit classes.
+6.  Ensure concrete leaves have genuinely different behaviour.
+7.  Implement `EventGroup` as the Composite.
+8.  Implement `add()` and a suitable `remove()` operation.
+9.  Recursively implement the common operations through the Composite
+    tree.
+10. Build the nested Pretoria Innovation Expo event structure.
+11. Define clear ownership and transfer rules.
+12. Produce the Composite part of the UML class diagram.
+13. Produce the Composite object diagram.
+
+### Key Objective to Demonstrate
+
+A client must be able to invoke behaviour through `EventComponent`
+without knowing whether the object is a single event unit or an entire
+group.
+
+### Suggested Git Contributions
+
+-   Create EventComponent abstraction
+-   Implement EventUnit hierarchy
+-   Add concrete expo event units
+-   Implement EventGroup Composite
+-   Add recursive Composite operations
+-   Implement ownership and transfer rules
+-   Build nested Expo structure
+
+------------------------------------------------------------------------
+
+## 4.2 Member 2 --- Boitumelo Ashley Monareng
+
+### Primary Role
+
+**Observer / Notification System Lead**
+
+### Objective
+
+Boitumelo Ashley Monareng is responsible for implementing the runtime
+communication mechanism. The goal is to allow `EventControl` and event
+areas to notify interested components without hard-coded calls to
+concrete classes.
+
+### Primary Files
+
+``` text
+Observer.h
+Observer.cpp
+Subject.h
+Subject.cpp
+EventControl.h
+EventControl.cpp
+Notice.h
+Notice.cpp
+```
+
+### Additional Responsibilities
+
+``` text
+Observer/update implementations in concrete EventUnit classes
+Observer/Subject-related EventGroup behaviour
+Observer-related section of docs/class_diagram.puml
+Observer/notification portions of docs/report.md
+```
+
+### Tasks
+
+1.  Implement the `Observer` abstraction.
+2.  Implement `update(...)`.
+3.  Implement the `Subject` abstraction.
+4.  Implement:
+    -   `attach()`
+    -   `detach()`
+    -   `notify()`
+5.  Implement `EventControl` as the central concrete subject.
+6.  Implement the `Notice` representation.
+7.  Implement at least six event notice types.
+
+The system includes:
+
+``` text
+OPEN
+CLOSE
+SCHEDULE_CHANGE
+CAPACITY_ALERT
+WEATHER_ALERT
+TRANSPORT_DELAY
+EVACUATE
+PAUSE
+RESUME
+STOCK_ALERT
+```
+
+8.  Prevent duplicate observer registrations.
+9.  Safely handle attempts to detach observers that are not registered.
+10. Maintain non-owning observer references.
+11. Ensure registration changes during notification are safe.
+12. Implement `EventGroup` as both an Observer and Subject where
+    required.
+13. Implement notification cascading through multiple event levels.
+14. Implement meaningful concrete reactions to notices.
+15. Document the Push Observer choice and transferred notice
+    information.
+
+### Cascading Scenario
+
+A typical cascade is:
+
+``` text
 EventControl
-    ↓ observes
-root EventGroup
-    ↓ observes
+    ↓ WEATHER_ALERT
+Pretoria Innovation Expo
+    ↓
 Tech Hall
-    ↓ observes
+    ↓
 Future Mobility Zone
-    ↓ observes
-DemoStage / Robotics Demo Booth
+    ↓
+DemoStage
 ```
 
-This separation makes it possible to reorganise ownership without automatically changing every notification relationship.
+The `DemoStage` can pause its performance, while other concrete
+observers react according to their own polymorphic behaviour.
 
-## 1.4 Design rationale
+### Suggested Git Contributions
 
-### Genuine part-whole tree
+-   Implement Observer interface
+-   Implement Subject registration
+-   Add duplicate attach and safe detach policy
+-   Implement Notice representation
+-   Add EventControl notification behaviour
+-   Implement cascading notifications
+-   Add concrete observer reactions
 
-A hall is genuinely made up of zones and operational units. A zone can contain other groups and leaves, and the same common operations make sense at every level. `getCapacity()` recursively aggregates children and `open()`, `close()` and `reportStatus()` recursively traverse the subtree. A client therefore does not need to know whether a reference is a leaf or an entire area.
+------------------------------------------------------------------------
 
-### Why Observer is needed
+## 4.3 Member 3 --- Hluyo Terrence Vakai
 
-Direct calls from `EventControl` to every concrete unit would hard-code the event topology and force the controller to know every class. Observer lets new interested components register at runtime without modifying `EventControl`. Groups can also receive a notice and republish it to their own registered observers.
+### Primary Role
 
-### Ownership
+**Integration, UML and Documentation Lead**
 
-Each `EventGroup` owns its direct children. Successful `add()` transfers ownership to that group. `remove()` does not delete the child; it transfers ownership back to the caller. This rule makes runtime movement possible without double deletion.
+### Objective
 
-### Observer ownership
+Hluyo Terrence Vakai is responsible for integrating the Composite and
+Observer implementations into a coherent executable and ensuring that
+the code, UML diagrams, Doxygen documentation and demonstration all
+describe the same design.
 
-Subjects do **not** own observers. The observer list contains non-owning raw pointers. This is appropriate because the Composite tree already defines component ownership, while observation is a separate relationship. `Observer` remembers its registered subjects and unregisters from them in its destructor. `Subject` also informs observers when a subject is destroyed. Together these mechanisms prevent dangling registration entries under normal destruction.
+### Primary Files
 
-### Registration policy
+``` text
+main.cpp
+Makefile
+Doxyfile
+README.md
+docs/report.md
+```
 
-- `attach(nullptr)`: ignored.
-- Duplicate `attach(same pointer)`: ignored.
-- `detach(nullptr)`: ignored.
-- `detach(unregistered pointer)`: no-op.
-- During notification, the Subject iterates over a snapshot. Registration changes therefore do not invalidate the current iteration.
+### Sequence Diagram Files
 
-## 1.5 Push/pull choice
+``` text
+docs/SD1_build_register.puml
+docs/SD2_cascading_notification.puml
+docs/SD3_conditional_capacity.puml
+docs/SD4_signature_safety_recovery.puml
+```
 
-EventFlow uses **push**. The operation is `update(const Notice&)`, and `Subject::notify()` passes the complete `Notice` to the observer. The notice contains `type`, `message` and `value`.
+### Tasks
 
-Push is useful here because capacity values, schedule information and safety messages are already known at publication time. It avoids a second query and makes the sequence diagrams explicit. The trade-off is that `Notice` must contain enough information for observers, so a very large event state object should not be pushed unnecessarily.
+1.  Build and maintain `main.cpp` as the complete EventFlow simulation.
+2.  Integrate Kemi's Composite implementation with Boitumelo Ashley
+    Monareng's Observer implementation.
+3.  Construct the nested event structure.
+4.  Register observers at runtime.
+5.  Demonstrate at least three different notices.
+6.  Demonstrate a cascading notification.
+7.  Demonstrate observer registration changes.
+8.  Demonstrate Composite traversal and capacity/status queries.
+9.  Demonstrate runtime reorganisation.
 
-## 2. Composite implementation
+A typical reorganisation is moving `Future Bites Vendor`:
 
-`EventGroup::add()` stores an owned child pointer. `remove()` erases a direct child and returns its pointer without deleting it. Recursive operations iterate over `children_` and call the same `EventComponent` interface on every child.
+``` text
+Community Hall
+      ↓ remove + detach
+Future Bites Vendor
+      ↓ add + attach
+Tech Hall
+```
 
-The root deletion demonstration in `main.cpp` executes `delete expo`. The `EventGroup` destructor deletes each child exactly once. Because children are removed from their previous parent before a transfer, a moved unit cannot be deleted by both parents.
+10. Demonstrate at least five event rules with different polymorphic
+    reactions.
+11. Implement or integrate a condition-based decision such as a capacity
+    threshold.
+12. Create SD1 --- Building and registering part of the event.
+13. Create SD2 --- Cascading event notification using a `loop` fragment.
+14. Create SD3 --- Conditional event response using `alt` and `opt`.
+15. Create SD4 --- Signature safety/recovery scenario.
+16. Integrate the complete UML class diagram.
+17. Configure and verify Doxygen.
+18. Maintain the README with build, run, architecture and Doxygen
+    instructions.
+19. Test the complete system using `make`.
+20. Verify that sequence-diagram messages correspond to real C++
+    operations.
 
-## 3. Observer notification system
+### Signature Scenario
 
-The concrete subject is `EventControl`. It stores the current notice and calls `notify()`. `EventGroup` is both an Observer and a Subject: its `update()` stores the pushed notice and then calls its own `notify()`.
+The signature scenario can be an emergency evacuation followed by
+recovery:
 
-This gives a multi-level cascade such as:
-
-```text
+``` text
 EventControl
- → Pretoria Innovation Expo
-   → Tech Hall
-     → Future Mobility Zone
-       → Keynote Stage / Robotics Demo Booth
+      ↓ EVACUATE
+Event Groups
+      ↓
+SecurityTeam → emergency response
+DemoStage → pauses
+InformationDesk → visitor guidance
+ShuttleStop → transport support
+      ↓
+Registration / runtime change
+      ↓
+EventControl
+      ↓ RESUME
+Event returns to normal operation
 ```
 
-The concrete leaf classes have genuinely different reactions. For example, a weather alert pauses the stage, keeps the information desk in guidance mode, leaves the booth operational, and changes security's monitoring state.
+### Suggested Git Contributions
 
-## 3.3 Notice/order types
+-   Create main.cpp integration scenario
+-   Add runtime event rules
+-   Add runtime component transfer demonstration
+-   Create SD1 building and registration
+-   Create SD2 cascading notification
+-   Create SD3 conditional response
+-   Create SD4 signature scenario
+-   Configure Doxygen and README
+-   Final integration and demonstration cleanup
 
-The implementation provides ten notice types:
+------------------------------------------------------------------------
 
-1. `OPEN` — operational opening.
-2. `CLOSE` — operational closure.
-3. `SCHEDULE_CHANGE` — timetable update.
-4. `CAPACITY_ALERT` — aggregate crowd/capacity warning.
-5. `WEATHER_ALERT` — weather risk.
-6. `TRANSPORT_DELAY` — shuttle delay.
-7. `EVACUATE` — safety evacuation.
-8. `PAUSE` — temporary pause.
-9. `RESUME` — recovery after a pause/emergency.
-10. `STOCK_ALERT` — food-service stock warning.
+# 5. Event Rules and Dynamic Behaviour
 
-These cover ordinary operational, capacity-related and safety-related changes.
+The system uses polymorphism so different concrete event units react
+differently to notices.
 
-## 4. Event rules
+1.  **Weather Alert:** `DemoStage` pauses its outdoor performance while
+    `InformationDesk` remains active to provide guidance.
+2.  **Capacity Alert:** `InnovationBooth` limits queue intake while
+    `SecurityTeam` increases crowd-control readiness.
+3.  **Transport Delay:** `ShuttleStop` changes its operational status
+    and passenger messaging.
+4.  **Evacuation:** `SecurityTeam` coordinates safety, `FoodVendor`
+    secures equipment, `DemoStage` stops activity and `InformationDesk`
+    provides evacuation guidance.
+5.  **Schedule Change:** Different units update their own operational
+    information.
+6.  **Resume:** Paused components return to normal operation while
+    respecting current observer registrations.
 
-1. **Weather:** `DemoStage` pauses its outdoor performance, while `InformationDesk` remains active to broadcast guidance.
-2. **Capacity:** `InnovationBooth` limits queue intake and `SecurityTeam` increases crowd-control readiness.
-3. **Transport:** `ShuttleStop` changes its operational state and passenger messaging when a transport delay arrives.
-4. **Evacuation:** `SecurityTeam` deploys an evacuation perimeter, `FoodVendor` secures equipment, `DemoStage` clears performers/audience, and `InformationDesk` enters evacuation-guidance mode.
-5. **Schedule:** `DemoStage`, `InnovationBooth` and `InformationDesk` each update different operational information when a schedule changes.
-6. **Recovery:** `RESUME` returns a paused stage to normal operation while the system continues to respect the current observer registrations.
+------------------------------------------------------------------------
 
-These behaviours are selected by each concrete Observer's polymorphic `update()` implementation. `EventControl` never asks an object what concrete type it is.
+# 6. Runtime Reorganisation
 
-## 4.2 Runtime reorganisation
+`Future Bites Vendor` initially belongs to `Community Hall`.
 
-`Future Bites Vendor` starts under `Community Hall`. During execution it is removed from `Community Hall` and added to `Tech Hall`. Before transfer, the vendor is detached from `Community Hall` as an Observer. After transfer it is attached to `Tech Hall`.
+During runtime:
 
-The ownership and observation changes are deliberately separate:
-
-```text
-communityHall.remove("Future Bites Vendor")
-communityHall.detach(cafe)
-techHall.add(cafe)
-techHall.attach(cafe)
+``` text
+1. Remove vendor from Community Hall ownership.
+2. Detach vendor from Community Hall notifications.
+3. Add vendor to Tech Hall ownership.
+4. Attach vendor to Tech Hall notifications.
 ```
 
-No deletion occurs during the transfer.
+The ownership relationship and Observer relationship are managed
+separately.
 
-## 4.3 Condition-based decision
+No object is deleted during transfer.
 
-`EventControl::evaluateCapacity(EventGroup*, int)` calls the Composite's `getCapacity()` and `capacityAtLeast()`. If the threshold is reached, it issues a `CAPACITY_ALERT`; otherwise no warning is issued. This condition is represented by the `alt` fragment in SD3. The `opt` fragment represents an additional high-pressure response.
+------------------------------------------------------------------------
 
-## 4.4 Original features
+# 7. Sequence Diagram Portfolio
 
-### Stock-aware catering
+## SD1 --- Building and Registering
 
-`STOCK_ALERT` causes `FoodVendor` to switch to a stock-conserving menu. This is separated into the leaf's behaviour rather than adding food logic to `EventControl`.
+Shows:
 
-### Visitor guidance mode
+-   client creation of the root Composite;
+-   creation of nested Composites;
+-   creation of at least two leaves;
+-   ownership through `add()`;
+-   Observer registrations.
 
-`InformationDesk` remains operational during weather and evacuation notices, changing the service it provides instead of simply closing like an ordinary unit.
+The diagram distinguishes Composite ownership from Observer
+registration.
 
-### Transport disruption handling
+## SD2 --- Cascading Event Notification
 
-`ShuttleStop` reacts specifically to `TRANSPORT_DELAY` and to evacuation support. This creates a distinct operational role rather than another generic leaf.
+Shows:
 
-## 5. Sequence diagram portfolio
+-   `EventControl` publishing a notice;
+-   notification through multiple Composite levels;
+-   a `loop` fragment for notifying observers;
+-   Push Observer information being passed through
+    `update(const Notice&)`;
+-   different concrete units reacting meaningfully.
 
-### SD1 — Building and registering
+## SD3 --- Conditional Event Response
 
-Shows client-side creation, Composite ownership through `add()`, and separate Observer registrations. An `opt` fragment demonstrates the duplicate-registration policy.
+Shows:
 
-### SD2 — Cascading event notification
+-   a Composite capacity operation;
+-   an `alt` fragment for a capacity threshold;
+-   an `opt` fragment for an additional response;
+-   polymorphic reactions rather than type checking.
 
-Shows `EventControl` publishing a schedule change, then nested `update()`/`notify()` calls through multiple Composite levels. A `loop` fragment represents the observer list, and the push notice is visible on every `update()` call.
+## SD4 --- Signature Event Scenario
 
-### SD3 — Conditional capacity response
+Shows:
 
-Shows the Composite capacity query and an `alt` decision for the threshold. An `opt` fragment models an additional high-pressure response. The interaction continues through the Composite hierarchy rather than type-checking concrete units in the controller.
+-   at least six lifelines;
+-   at least two Composite levels;
+-   Observer notification;
+-   a runtime change such as detach/attach or component transfer;
+-   a combined fragment;
+-   safety response followed by recovery.
 
-### SD4 — Signature safety/recovery scenario
+------------------------------------------------------------------------
 
-Shows a safety notice, a registration change, runtime vendor transfer, and a recovery notice. It includes more than six lifelines, two Composite levels, observer notifications, ownership transfer, detach/attach, `loop` and `opt` fragments.
+# 8. Doxygen
 
-## 6. Doxygen
+The project contains a `Doxyfile` that generates browsable
+documentation.
 
-The project contains a `Doxyfile` configured to scan the C++ headers and source files and generate HTML under `docs/doxygen`. Public classes and public operations have Doxygen documentation, including ownership expectations for raw pointers.
+Public classes and operations are documented using Doxygen comments.
 
-Three non-obvious decisions documented in code are:
+Important design decisions documented include:
 
-1. Observer references are non-owning.
-2. Composite `remove()` transfers ownership instead of deleting.
-3. Subject notification uses a snapshot to make registration changes during notification safe.
+1.  Observer references are non-owning.
+2.  Composite `remove()` transfers ownership rather than deleting the
+    object.
+3.  Notification uses a snapshot of registrations to safely handle
+    registration changes during notification.
 
-## 7. Git/GitHub workflow reflection
+------------------------------------------------------------------------
 
-**Replace the placeholders below with the team's actual history. Do not invent commits.**
+# 9. Git and GitHub Workflow Reflection
 
-Member 1 should primarily own the Composite implementation and build system, Member 2 should primarily own Observer behaviour and event rules, and Member 3 should primarily own diagrams, Doxygen and integration. All members should review and understand the complete design.
+The team uses GitHub to demonstrate genuine development by all three
+members.
 
-A suitable workflow is a private GitHub repository with feature branches and pull requests. Commits should describe real work, for example `Implement EventGroup composite ownership`, `Add safe observer registration`, `Add capacity and safety scenarios`, and `Add UML sequence portfolio`.
+### Division of Work
 
-Record actual evidence here:
+-   **Kemi** primarily develops the Composite hierarchy and concrete
+    event structure.
+-   **Boitumelo Ashley Monareng** primarily develops the Observer
+    system, notices and cascading notifications.
+-   **Hluyo Terrence Vakai** primarily integrates the system, develops
+    the runtime demonstration, maintains the diagrams and documentation,
+    and coordinates final testing.
 
-- Commit/PR 1: `<hash/link and what changed>`
-- Commit/PR 2: `<hash/link and what changed>`
-- Commit/PR 3: `<hash/link and what changed>`
+### Recommended Branches
 
-## 8. Integration/demonstration route
+``` text
+main
+feature/composite
+feature/observer
+feature/integration
+```
 
-A five-minute demonstration can follow this order:
+Each team member should make meaningful commits representing actual
+work. Changes should be integrated into `main` after testing and review.
 
-1. Build using `make`.
-2. Run `./eventflow`.
-3. Point out the nested Composite structure.
-4. Show observer registration and duplicate-registration handling.
-5. Trigger schedule and weather notices.
-6. Trigger the capacity threshold decision.
-7. Trigger transport delay.
-8. Move the food vendor and show detach/attach.
-9. Detach security, issue evacuation, then reattach security and issue resume.
-10. Show the final traversal and clean root deletion.
+Actual GitHub commit and pull-request evidence should be inserted before
+final submission.
 
-## 9. Team contribution statement
+------------------------------------------------------------------------
 
-| Member | Main contribution | Integration/evidence |
-|---|---|---|
-| `<Member 1>` | `<actual contribution>` | `<actual commits/PRs>` |
-| `<Member 2>` | `<actual contribution>` | `<actual commits/PRs>` |
-| `<Member 3>` | `<actual contribution>` | `<actual commits/PRs>` |
+# 10. Integration and Demonstration Route
 
-## Submission checklist
+A five-minute demonstration can follow this sequence:
 
-- [ ] Replace team names and student numbers.
-- [ ] Add actual private GitHub repository link.
-- [ ] Add real GitHub commit/PR evidence from all three members.
-- [ ] Generate Doxygen successfully and include evidence/screenshot in the final PDF.
-- [ ] Render/export all four PlantUML sequence diagrams.
-- [ ] Render/export the class diagram and object diagram.
-- [ ] Put this report in the required PDF order.
-- [ ] Build with `make` using C++11.
-- [ ] Run `./eventflow` and demonstrate the required behaviours.
+1.  Build the project using `make`.
+2.  Run `./eventflow`.
+3.  Show the nested Composite event structure.
+4.  Demonstrate observer registration.
+5.  Demonstrate duplicate registration handling.
+6.  Trigger schedule and weather notices.
+7.  Trigger a capacity threshold decision.
+8.  Trigger a transport delay.
+9.  Transfer the food vendor between event groups.
+10. Demonstrate detach and attach behaviour.
+11. Trigger evacuation and recovery.
+12. Show final status/capacity traversal.
+13. Demonstrate clean shutdown.
+
+------------------------------------------------------------------------
+
+# 11. Team Contribution Statement
+
+  -----------------------------------------------------------------------
+  Team Member                         Main Contribution
+  ----------------------------------- -----------------------------------
+  **Kemi**                            Composite architecture, event
+                                      hierarchy, concrete leaves,
+                                      ownership rules and object
+                                      structure.
+
+  **Boitumelo Ashley Monareng**       Observer architecture, notices,
+                                      registration policies, cascading
+                                      notifications and concrete
+                                      notification behaviour.
+
+  **Hluyo Terrence Vakai**            System integration, `main.cpp`,
+                                      runtime scenarios, sequence
+                                      diagrams, Doxygen, README and final
+                                      testing.
+  -----------------------------------------------------------------------
+
+All three members review and understand the complete implementation, UML
+diagrams, ownership policy and Observer collaboration before
+demonstration.
+
+------------------------------------------------------------------------
+
+# 12. Submission Checklist
+
+-   [ ] Team member names are correct.
+-   [ ] Student numbers are added where required.
+-   [ ] Actual GitHub repository link is added.
+-   [ ] Actual commit and pull-request evidence is included.
+-   [ ] Doxygen documentation is generated successfully.
+-   [ ] All four sequence diagrams are rendered/exported.
+-   [ ] Class and object diagrams are rendered/exported.
+-   [ ] The project builds with `make`.
+-   [ ] The executable is named `eventflow`.
+-   [ ] The executable demonstrates Composite, Observer, registration
+    changes, cascading notifications and runtime reorganisation.
+-   [ ] All three members understand the complete submission.
